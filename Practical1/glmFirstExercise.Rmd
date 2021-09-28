@@ -1,0 +1,75 @@
+---
+title: "GLM Practical Session 1"
+author: "alexaoh"
+date: "9/28/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE)
+setwd("/home/ajo/gitRepos/glm/Practical1")
+
+library(lattice)
+library(car)
+library(gridExtra)
+library(grid)
+library(MASS)
+library(survival)
+library(multcomp)
+library(mvtnorm)
+library(tables)
+library(HH)
+```
+
+## Linear Regression for Cholesterol
+
+```{r}
+data <- read.csv2("COL.csv", header = T)
+summary(data)
+
+p <- 2
+n <- dim(data)[1]
+
+# Fit linear model. 
+lm.fit <- lm(C~W, data = data)
+summary(lm.fit)
+```
+
+### Scatterplot of Points and Regression Line. 
+
+```{r}
+# Can be done manually and with a function. 
+scatterplot(C~W, smooth = F, data = data)
+plot(data[, "W"], data[, "C"], main = "Regression Line for Cholesterol vs. Weight", 
+     xlim = c(36, 90), ylim = c(66, 440), xlab = "Weight", ylab = "Cholesterol")
+abline(lm.fit, col = 4)
+# Could do the plot from above with the scatterplot function above (comes from 'car' package).
+```
+
+
+### Plot Regression Line with Conf. and Pred. Intervals
+
+```{r}
+# Plot confidence and prediction intervals with regression line (From package 'HH').
+ci.plot(lm.fit)
+```
+
+
+### Plot Predicted Values vs. Residuals
+
+```{r}
+# Plot the predicted values vs. residuals. 
+plot(predict(lm.fit), resid(lm.fit), main = "Predicted Values vs. Residuals")
+abline(h=0, lty = 2)
+```
+
+
+### Plot Standardized/Studentized Residuals
+
+```{r}
+plot(rstandard(lm.fit), main = "Rstandard")
+abline(h=c(-2, 0, 2), lty = 2)
+
+plot(rstudent(lm.fit), main = "Rstudent")
+abline(h=c(-2, 0, 2), lty = 2)
+```
