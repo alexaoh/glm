@@ -1,7 +1,7 @@
 ---
-title: "GLM Practical Session 1"
+title: "GLM Practical Sessions, Week 3"
 author: "alexaoh"
-date: "9/28/2021"
+date: "28.09.21 and 30.09.21"
 output: pdf_document
 ---
 
@@ -26,7 +26,11 @@ library(HH)
 ```{r}
 data <- read.csv2("COL.csv", header = T)
 summary(data)
+```
 
+## Simple Linear Regression with W - Exercise 1
+
+```{r}
 p <- 2
 n <- dim(data)[1]
 
@@ -66,6 +70,8 @@ abline(h=0, lty = 2)
 
 ### Plot Standardized/Studentized Residuals
 
+Here: 5 of the points should be outside the lines -2 and 2, since we here have 95\% confidence intervals (2 approximates 1.96) and we have 100 points in the data. We can see that this is the case. 
+
 ```{r}
 plot(rstandard(lm.fit), main = "Rstandard")
 abline(h=c(-2, 0, 2), lty = 2)
@@ -73,3 +79,96 @@ abline(h=c(-2, 0, 2), lty = 2)
 plot(rstudent(lm.fit), main = "Rstudent")
 abline(h=c(-2, 0, 2), lty = 2)
 ```
+
+
+### Diagnostic: Leverage
+
+```{r}
+# A line at 0.06 for some reason ? Check code after session!
+plot(hatvalues(lm.fit), main= "Leverage (hat-)values")
+```
+
+### Diagnostic: Influential observations (dffits, cooks.distance)
+
+Calculate the Cook's distances. 
+
+```{r}
+plot(cooks.distance(lm.fit), main = "Cook's Distances")
+abline(h=c(0,4/n),lty = 2)
+```
+
+Compute dffits (difference of fits). This is the difference between the fits when a point is in or out of the dataset. 
+
+```{r}
+plot(dffits(lm.fit), main = "dffits")
+abline(h=c(-2*sqrt(p/n), 0, 2*sqrt(p/n)), lty = 2)
+```
+
+### Perform a simple regression for each group of age
+
+```{r}
+data$AF <- factor(data$A)
+# The plot (function) can be found in the document in Atenea afterwards. 
+```
+
+
+# Multiple Linear Regression - Exercise 3
+
+```{r}
+data <- data[, -5] # Remove AF again. 
+scatterplotMatrix(data, smooth = F, diagonal = F)
+```
+
+```{r}
+lm.fitm <- lm(C~W+A+H, data = data)
+summary(lm.fitm)
+
+p <- 4
+```
+
+$\hat{\sigma}^2 \approx \text{Residual standard error}^2 = (30.11)^2$. 
+
+### Omnibus test (F-test)
+
+Test the null-model (all coefficients are zero, except for the intercept) vs. our model (at least one of the coefficients are zero).  
+
+
+### Anova
+
+```{r}
+anova(lm.fitm) # Performs the Type-I test. Order of the variables is important. 
+```
+
+```{r}
+Anova(lm.fitm) # Performs the Type-II test. Order of the variables is NOT important. 
+```
+### Confidence Intervals
+
+```{r}
+confint(lm.fitm, level = 0.99)
+```
+
+### Prediction
+
+```{r}
+CO <- data.frame(cbind(W = c(65, 75, 65), A = c(15, 15, 12), H = c(150, 150, 150)), row.names = 1:3)
+predict(lm.fitm, CO, interval = "confidence", level=0.95, se.fit = T) 
+# How can it calculate confidence intervals for new predictions (for the mean)?
+```
+```{r}
+predict(lm.fitm, CO, interval = "prediction", level=0.95, se.fit = T) 
+```
+
+## R Diagnostic
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fitm)
+```
+
+Then we did some more diagnostics, similar to the ones dones in the simple linear regression above. 
+
+Have a look at the file in Atenea for all of this + explanations regarding all of the work done in these exercises. 
+
+
+DO EXERCISE 2 AND 4 UNTIL NEXT TUESDAY!!!
