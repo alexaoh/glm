@@ -1,0 +1,53 @@
+---
+title: "Linear Models, Problem 4"
+author: "alexaoh"
+date: '`r format(Sys.Date(),"%e %B, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE)
+
+library(lattice)
+library(car)
+library(gridExtra)
+library(grid)
+library(MASS)
+library(survival)
+library(multcomp)
+library(mvtnorm)
+library(tables)
+library(HH)
+```
+
+```{r}
+data <- read.csv2("dcrown.csv")
+data$RP <- data$PB/data$PT # Add the given ratio to the data. 
+head(data)
+dim(data)
+summary(data)
+```
+
+### Consider Two Different Linear Models
+
+```{r}
+modA <- lm(DCrown~PT+RP+HT+A, data = data)
+summary(modA)
+modB <- lm(log(DCrown)~log(PT)+log(RP)+log(HT)+log(A), data = data)
+summary(modB)
+```
+### a) Questions about `modA`
+
+(1) All the coefficient estimates are not significantly different from zero, with a significance level of 5\%. Only `PT` and `A` (plus the intercept) are significant to this level. 
+
+(2) The estimation of the residual variance is $(\text{Residual standard error})^2$ = `r summary(modA)$sigma^2`. 
+
+(3) The studentized residuals are plotted below.
+
+```{r}
+# Plot studentized residuals. 
+```
+
+
+### b) Questions about `modB`
+

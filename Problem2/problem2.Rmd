@@ -1,0 +1,366 @@
+---
+title: "Linear Models, Problem 2"
+author: "alexaoh"
+date: '`r format(Sys.Date(),"%e %B, %Y")`'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE)
+
+library(lattice)
+library(car)
+library(gridExtra)
+library(grid)
+library(MASS)
+library(survival)
+library(multcomp)
+library(mvtnorm)
+library(tables)
+library(HH)
+```
+
+## Simulated Data for Eight Regression Lines
+
+```{r}
+data <- read.csv2("REG8.csv")
+head(data)
+(d <- dim(data))
+```
+
+The task is to compute all 8 regression lines and compare them. 
+
+### Regression Line 1
+
+```{r}
+X1 <- data[data$REG == 1, "X"]
+Y1 <- data[data$REG == 1, "Y"]
+
+scatterplot(X1, Y1, smooth = F, boxplots = F)
+```
+
+```{r}
+lm1 <- lm(Y1~X1)
+summary(lm1)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty high (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm1)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X1,resid(lm1)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X1,dffits(lm1))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm1)
+```
+
+We see that the residuals have a pattern (quadratic), which shows that the homoscedasticity assumption (most likely) does not hold. Moreover, the QQ-plot shows that the standardized residuals do not resemble the quantiles of the normal distribution, which shows that the normality assumption of the errors (most likely) does not hold. Also, we see a pattern in the Scale-location plot, which is not a good sign for our linear model fit. 
+
+### Regression Line 2
+
+```{r}
+X2 <- data[data$REG == 2, "X"]
+Y2 <- data[data$REG == 2, "Y"]
+scatterplot(X2, Y2, smooth = F, boxplots = F)
+```
+
+```{r}
+lm2 <- lm(Y2~X2)
+summary(lm2)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty high (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm2)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X2,resid(lm2)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X2,dffits(lm2))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm2)
+```
+
+Looking past the outlier, we see that the residuals have a pattern (quadratic), which shows that the homoscedasticity assumption (most likely) does not hold. Moreover, the QQ-plot shows that the standardized residuals do not resemble the quantiles of the normal distribution, which shows that the normality assumption of the errors (most likely) does not hold. Also, we see a pattern in the Scale-location plot (could be approximately linearly increasing for all points except the outliers), which is not a good sign for our linear model fit. These patterns can be seen more closely by removing the outlier, but then the values of the estimations and the F-test change. 
+
+
+### Regression Line 3
+
+```{r}
+X3 <- data[data$REG == 3, "X"]
+Y3 <- data[data$REG == 3, "Y"]
+scatterplot(X3, Y3, smooth = F, boxplots = F)
+```
+
+```{r}
+lm3 <- lm(Y3~X3)
+summary(lm3)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm3)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X3,resid(lm3)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X3,dffits(lm3))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm3)
+```
+
+We see that the residuals have a pattern (sinusoidal), which shows that the homoscedasticity assumption (most likely) does not hold. Moreover, the QQ-plot shows that the standardized residuals do not resemble the quantiles of the normal distribution, which shows that the normality assumption of the errors (most likely) does not hold. Also, we see a pattern in the Scale-location plot (could be approximately quadratic, according to the red line), which is not a good sign for our linear model fit. 
+
+### Regression Line 4
+
+```{r}
+X4 <- data[data$REG == 4, "X"]
+Y4 <- data[data$REG == 4, "Y"]
+scatterplot(X4, Y4, smooth = F, boxplots = F)
+```
+
+```{r}
+lm4 <- lm(Y4~X4)
+summary(lm4)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm4)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X4,resid(lm4)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X4,dffits(lm4))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm4)
+```
+
+Now the pattern is less then in the other cases, but one can still argue that that the homoscedasticity assumption (most likely) could not hold. Moreover, the QQ-plot shows that the standardized residualsresemble the quantiles of the normal distribution more than earlier, but still one could conclude that the normality assumption of the errors (most likely) does not hold. The pattern in the Scale-location plot is not as pronounced as in earlier cases.
+
+### Regression Line 5
+
+```{r}
+X5 <- data[data$REG == 5, "X"]
+Y5 <- data[data$REG == 5, "Y"]
+scatterplot(X5, Y5, smooth = F, boxplots = F)
+```
+
+```{r}
+lm5 <- lm(Y5~X5)
+summary(lm5)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm5)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X5,resid(lm5)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X5,dffits(lm5))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm5)
+```
+
+The patterns keep changing depending on the data, even though the estimates and the regression line stay the same. 
+
+### Regression Line 6
+
+```{r}
+X6 <- data[data$REG == 6, "X"]
+Y6 <- data[data$REG == 6, "Y"]
+scatterplot(X6, Y6, smooth = F, boxplots = F)
+```
+
+```{r}
+lm6 <- lm(Y6~X6)
+summary(lm6)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm6)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X6,resid(lm6)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X6,dffits(lm6))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm6)
+```
+
+The patterns keep changing depending on the data, even though the estimates and the regression line stay the same. 
+
+### Regression Line 7
+
+```{r}
+X7 <- data[data$REG == 7, "X"]
+Y7 <- data[data$REG == 7, "Y"]
+scatterplot(X7, Y7, smooth = F, boxplots = F)
+```
+
+```{r}
+lm7 <- lm(Y7~X7)
+summary(lm7)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm7)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X7,resid(lm7)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X7,dffits(lm7))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm7)
+```
+
+The patterns keep changing depending on the data, even though the estimates and the regression line stay the same. 
+
+### Regression Line 8
+
+```{r}
+X8 <- data[data$REG == 8, "X"]
+Y8 <- data[data$REG == 8, "Y"]
+scatterplot(X8, Y8, smooth = F, boxplots = F)
+```
+
+```{r}
+lm8 <- lm(Y8~X8)
+summary(lm8)
+p <- 2
+n <- d[1]/8 # 21
+```
+$R^2$ is pretty large (close to 1). The points in the scatter plot look exponentially distributed (or polynomial of second degree). 
+
+```{r}
+anova(lm8)
+```
+
+Anova-test shows that the model has some merit compared to the null model, i.e. that at least one of the coefficients is significantly different from zero. 
+
+Some diagnostics: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(X8,resid(lm8)) #o rstudent(m) , h=c(-2,0,2)
+abline(h=0,lty=2)
+plot(X8,dffits(lm8))
+abline(h=c(-2*sqrt(p/n),0,2*sqrt(p/n)),lty=2)
+```
+
+Still not sure what to conclude from the **dffits** and why those lines are plotted. What is the theory behind?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm8)
+```
+
+The patterns keep changing depending on the data, even though the estimates and the regression line stay the same. 
+
+## Conclusions
+
+All the lines have the same regression coefficients, where most of them have the same estimated standard errors and $p$-values. They also have the same value of $R^2$ and the anova/F-test gives the same conclusion. What changes is the validity of the linear model in each case, based on the distributions of the data. I would say that some of them could be valid (line 4 or 8 perhaps), i.e. the assumptions of the linear model seem to hold based on the diagnostic plots, while most of them do not hold because of patterns or trends in the data (which are clearly not linear). This could be fixed by using other regression models, or using GAMs (with splines, polynomials, exponentials, logs, etc.) if one insists on using linear models. 
+
