@@ -2,7 +2,7 @@
 title: "Linear Models, Problem 4"
 author: "alexaoh"
 date: '`r format(Sys.Date(),"%e %B, %Y")`'
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -45,9 +45,36 @@ summary(modB)
 (3) The studentized residuals are plotted below.
 
 ```{r}
-# Plot studentized residuals. 
+plot(rstudent(modA))
+abline(h = c(-2, 2), lty = 2)
 ```
+
+As is apparent, 15 points are outside the interval (-2,2). This represents a percentage of approximately `r round(15*100/dim(data)[1], 2)` \% of the points, which is reasonable, considering $1.96 \approx 2$, where 1.96 is the 0.975 quantile of the standard normal distribution. Hence, (-2,2) is an approximation of a 5\% confidence interval. 
 
 
 ### b) Questions about `modB`
+
+(1) In the second model all the coefficient estimates are significantly different from zero, with a significance level of 5\%. 
+
+(2) The estimation of the residual variance is $(\text{Residual standard error})^2$ = `r summary(modB)$sigma^2`. 
+
+(3) The studentized residuals are plotted below.
+
+```{r}
+plot(rstudent(modB))
+abline(h = c(-2, 2), lty = 2)
+```
+
+As is apparent, 11 points are outside the interval (-2,2). This represents a percentage of approximately `r round(11*100/dim(data)[1], 2)`\% of the points, which is reasonable, considering $1.96 \approx 2$, where 1.96 is the 0.975 quantile of the standard normal distribution. Hence, (-2,2) is an approximation of a 5\% confidence interval. 
+
+### c)
+
+I would choose `modB` since, compared to `modB`, $R^2$ is larger, the F-statistic is larger (even though both have small $p$-values for the F-test) and all the coefficients are significant (in contrast to the first model, which only has a few estimates that are significantly non-zero, to a 5\% level). Note that I have assumed that the assumptions of the linear model are verified for both models (as it says in the problem), which is why these assumptions are not discussed.  
+
+### d)
+
+```{r}
+new.data <- data.frame(PT = 0.4, PB = 0.6, HT = 2.3, A = 10, RP = 0.6/0.4)
+predict(modB, new.data, interval = "confidence", level = 0.95)
+```
 
