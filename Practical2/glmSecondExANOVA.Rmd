@@ -1,13 +1,13 @@
 ---
-title: "GLM Practical Sessions, Week 3"
+title: "GLM Practical Sessions, Week 6"
 author: "alexaoh"
-date: "28.09.21 and 30.09.21"
-output: html_document
+date: "21.10.21"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE)
-setwd("/home/ajo/gitRepos/glm/Practical1")
+setwd("/home/ajo/gitRepos/glm/Practical2")
 
 library(lattice)
 library(car)
@@ -132,7 +132,6 @@ $\hat{\sigma}^2 \approx \text{Residual standard error}^2 = (30.11)^2$.
 
 Test the null-model (all coefficients are zero, except for the intercept) vs. our model (at least one of the coefficients are zero).  
 
-
 ### Anova
 
 ```{r}
@@ -141,6 +140,7 @@ anova(lm.fitm) # Performs the Type-I test. Order of the variables is important.
 
 ```{r}
 Anova(lm.fitm) # Performs the Type-II test. Order of the variables is NOT important. 
+# Can also ask it to compute Type-III test. The order is not important there either. 
 ```
 ### Confidence Intervals
 
@@ -154,6 +154,7 @@ confint(lm.fitm, level = 0.99)
 CO <- data.frame(cbind(W = c(65, 75, 65), A = c(15, 15, 12), H = c(150, 150, 150)), row.names = 1:3)
 predict(lm.fitm, CO, interval = "confidence", level=0.95, se.fit = T) 
 # How can it calculate confidence intervals for new predictions (for the mean)?
+# Vi plukker ut verdien til konfidensintervallet i tre ulike punkter, derfor har vi tre forskjellige konfidensintervaller. 
 ```
 ```{r}
 predict(lm.fitm, CO, interval = "prediction", level=0.95, se.fit = T) 
@@ -168,7 +169,66 @@ plot(lm.fitm)
 
 Then we did some more diagnostics, similar to the ones dones in the simple linear regression above. 
 
-Have a look at the file in Atenea for all of this + explanations regarding all of the work done in these exercises. 
+Have a look at the file in Atenea (colesterol-regmultiple.pdf) for all of this + explanations regarding all of the work done in these exercises. 
 
+## Diagnostic: OUTLIERS (rstudent)
 
-DO EXERCISE 2 AND 4 UNTIL NEXT TUESDAY!!!
+```{r}
+plot(rstandard(lm.fitm), main = "Rstandard")
+abline(h=c(-2,0,2), lty = 2)
+```
+
+```{r}
+
+plot(rstudent(lm.fitm), main = "Rstudent")
+abline(h=c(-2,0,2), lty = 2)
+```
+
+## Diagnostic: LEVERAGE
+
+```{r}
+plot(hatvalues(lm.fitm))
+abline(h=c(2, 2*mean(hatvalues(lm.fitm))), lty = 2)
+abline(h=c(0,3*p/n))
+```
+
+## Diagnostic: Influential Values (dffits)
+
+```{r}
+plot(cooks.distance(lm.fitm))
+abline(h=c(0,4/n),lty= 2)
+```
+
+```{r}
+plot(dffits(lm.fitm), main="dffits")
+abline(h=c(-2*sqrt(p/n), 0, 2*sqrt(p/n)), lty = 2)
+```
+
+## Diagnostic: Colinearity
+
+```{r}
+vif(lm.fitm)
+# Larger VIF signals that the variable is more correlated to the other variables. Linear dependence. 
+# Smaller than 1 for VIF is good. Between 1 and 5 is ok. But larger than 5 is not great. 
+# This model could/should be simplified, since the variables are correlated. 
+```
+
+```{r}
+newmod <- lm(C~I(W-(-10+0.5*H))+A+H, data)
+summary(newmod)
+```
+
+```{r}
+vif(newmod)
+```
+
+Suppress H, since $p$-value is large. 
+
+```{r}
+renewmod <- lm(C~I(W-(-10+0.5*H))+A, data)
+summary(renewmod)
+```
+
+```{r}
+vif(renewmod)
+```
