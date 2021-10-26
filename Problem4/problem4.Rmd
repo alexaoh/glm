@@ -26,6 +26,7 @@ data$RP <- data$PB/data$PT # Add the given ratio to the data.
 head(data)
 dim(data)
 summary(data)
+scatterplotMatrix(data, smooth = F, diagonal = F)
 ```
 
 ### Consider Two Different Linear Models
@@ -42,11 +43,27 @@ summary(modB)
 
 (2) The estimation of the residual variance is $(\text{Residual standard error})^2$ = `r summary(modA)$sigma^2`. 
 
+Residual plot is given below. Looks like it is hard to assume homoscedasticity in this case. 
+
+```{r}
+plot(predict(modA), resid(modA), pch = 3)
+abline(h=0, lty = 2)
+```
+
+Model diagnostics are done below.
+
+```{r}
+par(mfrow = c(2,2))
+plot(modA)
+par(mfrow = c(1,1))
+```
+
+
 (3) The studentized residuals are plotted below.
 
 ```{r}
-plot(rstudent(modA))
-abline(h = c(-2, 2), lty = 2)
+plot(rstudent(modA), pch = 3)
+abline(h = c(-3, -2, 0, 2, 3), lty = 2)
 ```
 
 As is apparent, 15 points are outside the interval (-2,2). This represents a percentage of approximately `r round(15*100/dim(data)[1], 2)` \% of the points, which is reasonable, considering $1.96 \approx 2$, where 1.96 is the 0.975 quantile of the standard normal distribution. Hence, (-2,2) is an approximation of a 5\% confidence interval. 
@@ -58,11 +75,27 @@ As is apparent, 15 points are outside the interval (-2,2). This represents a per
 
 (2) The estimation of the residual variance is $(\text{Residual standard error})^2$ = `r summary(modB)$sigma^2`. 
 
+Residual plot is given below. Looks better. 
+
+```{r}
+plot(predict(modB), resid(modB), pch = 3)
+abline(h=0, lty = 2)
+```
+
+Model diagnostics are done below.
+
+```{r}
+par(mfrow = c(2,2))
+plot(modB)
+par(mfrow = c(1,1))
+```
+
+
 (3) The studentized residuals are plotted below.
 
 ```{r}
-plot(rstudent(modB))
-abline(h = c(-2, 2), lty = 2)
+plot(rstudent(modB), pch = 3)
+abline(h = c(-3, -2, 0, 2, 3), lty = 2)
 ```
 
 As is apparent, 11 points are outside the interval (-2,2). This represents a percentage of approximately `r round(11*100/dim(data)[1], 2)`\% of the points, which is reasonable, considering $1.96 \approx 2$, where 1.96 is the 0.975 quantile of the standard normal distribution. Hence, (-2,2) is an approximation of a 5\% confidence interval. 
@@ -74,7 +107,9 @@ I would choose `modB` since, compared to `modB`, $R^2$ is larger, the F-statisti
 ### d)
 
 ```{r}
+# Do not need to do the following (see row below) since the variables are log-transformed in the model. 
+#new.data <- data.frame(PT = log(0.4), PB = log(0.6), HT = log(2.3), A = log(10), RP = log(0.6/0.4))
 new.data <- data.frame(PT = 0.4, PB = 0.6, HT = 2.3, A = 10, RP = 0.6/0.4)
-predict(modB, new.data, interval = "confidence", level = 0.95)
+exp(predict(modB, new.data, interval = "prediction", level = 0.95)) # Transform back to correct dimension. 
 ```
 
