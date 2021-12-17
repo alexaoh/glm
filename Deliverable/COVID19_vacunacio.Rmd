@@ -193,8 +193,36 @@ ggplot(d4, aes(x = EDAT, y = Count)) +
 
 # Model Fit  
 
-Try models: Multinomial, Poisson and Binomial (for each row in a contingency table)
+Try models: Multinomial, Poisson and Binomial (for each row in a contingency table) (As mentioned in lecture)
+
+### EDA before Model Fit
+
+```{r}
+plot(covid.data$PAUTA, covid.data$RECOMPTE)
+```
+
+### Linear Model
 
 First we will try a linear model, to see if there is a linear relationship in the data. 
+
+```{r}
+model1 <- lm(RECOMPTE ~ SEXE + EDAT + DATA + PAUTA, data = covid.data) #Blir dette rett?
+summary(model1)
+par(mfrow = c(2,2))
+plot(model1, ask = F)
+par(mfrow = c(1,1))
+```
+
+Looking at the plots above, this is obviously not a good model. Moreover, The $R^2$ is under $10\%$ which is very bad. 
+
+### Generalized Linear Model
+
+```{r}
+model2 <- glm(RECOMPTE ~ SEXE + EDAT + DATA + PAUTA, family = poisson(link = "log"), data = covid.data)
+summary(model2)
+par(mfrow = c(2,2))
+plot(model2, ask = F)
+par(mfrow = c(1,1))
+```
 
 # Conclusions
