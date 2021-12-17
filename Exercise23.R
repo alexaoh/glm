@@ -27,6 +27,8 @@ plot(m0, ask = F)
 par(mfrow = c(0,0))
 
 # Model2: Response binomial. probit link (same as above, but do not assume normal response.)
+m1<-glm(cbind(DIED,T-DIED)~log(DOSE),family=binomial(link="probit"),data=data)
+summary(m1)
 
 # Model3: Response binomial. logit link.
 
