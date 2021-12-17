@@ -18,8 +18,10 @@ editor_options:
 ```{r setup, include=FALSE}
 rm(list = ls())
 knitr::opts_chunk$set(echo = TRUE, warning = F)
-setwd("/home/ajo/gitRepos/glm/Deliverable")
+# setwd("/home/ajo/gitRepos/glm/Deliverable")
 library(dplyr)
+library(lubridate)
+library(ggplot2)
 ```
 
 We are analyzing a data set that contains information about the impact of COVID-19 by vaccination status in 2021 in Catalunya. More information about the data set can be found [here](https://analisi.transparenciacatalunya.cat/en/Salut/Impacte-del-COVID-19-per-estat-de-vacunaci-/6izj-g3sb). 
@@ -29,6 +31,22 @@ The data set contains 6 columns. They are explained shortly below.
 | Variable    | SEXE                 | EDAT      | DATA | ESDEVENIMENT | PAUTA | RECOMPTE |
 |-------------|----------------------|-----------|------|--------------|-------|----------|
 | Explanation | Sex (Male or Female) | Age Group | Date |              | Vaccine?       |          |
+
+These data come from various information systems of the Department of Health and the Catalan Health Service, detailed in https://dadescovid.cat/documentacio, and show, for the date of reference of each record, by gender, by age group and for the whole of Catalonia, from the beginning of the vaccination campaign, on January 1, 2021, the impact of COVID-19 (new cases, hospitalizations, hospitalizations in critics and deaths) according to the vaccination status of the people affected. Keep in mind that the same person is counted as many times as events for which it has happened.
+
+SEXE: Sex
+
+EDAT: Age group 
+
+DATA: Date on collecting data 
+
+ESDEVENIMENT: Event - (Case, Hospitalization, Critics, Death)
+Is it not critical when hospitalized?
+
+PAUTA: Pattern? (Must be vaccine) - (Not started, Partial, Complete)
+
+RECOMPTE: Recount? - Number
+
 
 # Objective
 
@@ -48,17 +66,21 @@ data <- read.csv("Impacte_del_COVID-19_per_estat_de_vacunaci_.csv")
 #head(data)
 #str(data)
 #summary(data)
+
 data$DATA <- as.Date(data$DATA, format = "%d/%m/%Y")
 data$EDAT <- as.factor(data$EDAT)
 covid.data <- data %>% filter(DATA >= "2021-05-01" & DATA <= "2021-12-12") %>% 
       filter(EDAT %in% c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
 # What about "No classificat"?
-#ummary(covid.data)
+#summary(covid.data)
 #str(covid.data)
 covid.data$EDAT <- factor(covid.data$EDAT, labels = c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
 covid.data$ESDEVENIMENT <- factor(covid.data$ESDEVENIMENT, labels = c("Cas", "Crit", "Def", "Hosp"))
 
 # Need to make some more factors. 
+# Create week and month variables
+covid.data$Week <- floor_date(covid.data$DATA, "week")
+covid.data$Month <- floor_date(covid.data$DATA, "month")
 ```
 
 **Make sure that the filtering etc is done correctly (later) IMPORTANT!**
@@ -81,6 +103,8 @@ barplot(height = table(covid.data.women$EDAT), main = "Number of women in each a
 ```
 
 Below one can see the four different types of cases for men and women separately. As noted, we are interested in the differences in critical COVID-19 infections. **I am guessin that Defunció and Hospitalització are worse than Critics, should we analyze these as well?**
+**I think Defuncio is death, and Critics are critical cases worse than just hospitalization. Lets only analyze Critics first, then see if we can/want to do more**
+
 
 ```{r}
 par(mfrow = c(1,2))
@@ -92,7 +116,13 @@ barplot(height = table(covid.data.women$ESDEVENIMENT), main = "Women of each cas
 The evolution of critical patients in time (in months) for men and women is shown below. 
 
 ```{r}
-# Group
+# Group data 
+covid.data.critics <- covid.data %>% filter(ESDEVENIMENT == "Crit")
+## Plot evolution of critical patients 
+ggplot(data = covid.data.critics, aes(Week)) +
+  geom_bar(aes(fill = SEXE))
+ggplot(data = covid.data.critics, aes(Month)) +
+  geom_bar(aes(fill = SEXE))
 ```
 
 The data grouped as a function of vaccination status and age is shown in the following table. 
