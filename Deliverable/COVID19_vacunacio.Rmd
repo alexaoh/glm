@@ -1,7 +1,7 @@
 ---
 title: "Impacte del COVID-19 per estat de vacunació"
 subtitle: "Linear and Generalized Linear Models"
-author: "Alexander J Ohrt, Ulrik Danielsen"
+author: "Ulrik Danielsen, Alexander J Ohrt"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   html_document:
@@ -24,7 +24,7 @@ library(lubridate)
 library(ggplot2)
 ```
 
-We are analyzing a data set that contains information about the impact of COVID-19 by vaccination status in 2021 in Catalunya. More specifically, the data shows the impact of COVID-19 (new cases, hospitalizations, critical hospitalizations and deaths) in the entirety of Catalunya, from January 1st 2021 until now, given the vaccination status of each person. More information about the data set can be found [here](https://analisi.transparenciacatalunya.cat/en/Salut/Impacte-del-COVID-19-per-estat-de-vacunaci-/6izj-g3sb). Note that the data we are using was downloaded December 17th at 12:00. 
+We are analyzing a data set that contains information about the impact of COVID-19 by vaccination status in 2021 in Catalunya. The data comes from various information systems of the Department of Health and the Catalan Health Service, as detailed [here](https://dadescovid.cat/documentacio). More specifically, the data shows the impact of COVID-19 (new cases, hospitalizations, critical hospitalizations and deaths) in the entirety of Catalunya, from January 1st 2021 until now, for the date of reference of each record, by gender, by age group, according to the vaccination status of the people. Keep in mind that a person is counted as many times as the number of events that has happened to the individual in question. This means that each person may be counted up to four times in the data set as a whole. More information about the data set can be found [here](https://analisi.transparenciacatalunya.cat/en/Salut/Impacte-del-COVID-19-per-estat-de-vacunaci-/6izj-g3sb). Note that the data we are using was downloaded December 17th at 12:00. 
 
 The data set contains 6 columns. They are explained shortly below. 
 
@@ -33,33 +33,17 @@ The data set contains 6 columns. They are explained shortly below.
 | Explanation   | Sex         | Age Group                                                                   | Date | Event (Severity of illness)              | Vaccination status             | Event Count    |
 | Factor Levels | Homme, Dona | 0-9, 10-19, 20-29,  30-39, 40-49, 50-59,  60-69, 70-79, 80$\geq$, Not classified |      | Cas, Hospitalització, Critics, Defunció  | No iniciada, Parcial, Completa |          |
 
-These data come from various information systems of the Department of Health and the Catalan Health Service, detailed in https://dadescovid.cat/documentacio, and show, for the date of reference of each record, by gender, by age group and for the whole of Catalonia, from the beginning of the vaccination campaign, on January 1, 2021, the impact of COVID-19 (new cases, hospitalizations, hospitalizations in critics and deaths) according to the vaccination status of the people affected. Keep in mind that the same person is counted as many times as events for which it has happened.
-
-SEXE: Sex
-
-EDAT: Age group 
-
-DATA: Date on collecting data 
-
-ESDEVENIMENT: Event - (Case, Hospitalization, Critics, Death)
-Is it not critical when hospitalized?
-
-PAUTA: Pattern? (Must be vaccine) - (Not started, Partial, Complete)
-
-RECOMPTE: Recount? - Number
-
-
 # Objective
 
 The objective of the analysis is to answer the following question: 
 *Do differences in the severity of COVID-19 infection exist between people that are unvaccinated, people that only have received one dose and people that are fully vaccinated?*
 More precisely, do the amount of people with a *critical* infection depend on their respective vaccination status? 
 
-The analysis will be performed separately for men and women. Moreover, we will only consider people that are older than 30 and only data from the May 1st to December 12th. Additionally, we will only analyze differences in people that are reported with a critical event, disregarding people that are hospitalized (not critical) and people that have died. 
+The analysis will be performed separately for men and women. Moreover, we will only consider people that are older than 30 and only data from the May 1st to December 12th. Additionally, we will only analyze differences in people that are reported with a critical event, disregarding people with new cases, people that are hospitalized (not critical) and people that have died. 
 
 # Data Preparation
 
-First we have to remove all people younger than 30 years old and cases before May 1st. 
+First we have to remove all people younger than 30 years old and cases before May 1st. The data is prepared according to the description above. 
 
 ```{r}
 data <- read.csv("Impacte_del_COVID-19.csv") # Data updated 17.12.21.
@@ -85,9 +69,6 @@ clean <- function(data){
 covid.data <- clean(data)
 ```
 
-Tienes que tener en cuenta que una misma persona está contada tantas veces como eventos por los que haya pasado.
-When it comes to the event count in the data set, one has to take into account that each individual is counted as many times as the number of events that happened to the individual in question. This means that each person may be counted up to four times in the data set as a whole. 
-
 # Exploratory Data Analysis 
 
 ```{r}
@@ -95,46 +76,90 @@ covid.data.women <- covid.data %>% filter(SEXE == "Dona")
 covid.data.men <- covid.data %>% filter(SEXE == "Home")
 ```
 
-The data set is split into men and women. There are `r sum(covid.data.men$RECOMPTE)` men and `r sum(covid.data.women$RECOMPTE)` women in the data. 
+The data set is split into men and women. There are `r sum(covid.data.men$RECOMPTE)` critical cases for men and `r sum(covid.data.women$RECOMPTE)` critical cases for women in the data. 
 
-Some visualization is done below. 
-
-### Cases of Critical Infection by Age for each Gender
+### Cases of Critical Infection by Age and by Gender
 
 ```{r}
 count.in.age.group <- function(data){
-  data %>% group_by(EDAT) %>% summarise(Count = sum(RECOMPTE))
+  data %>% group_by(SEXE, EDAT) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
 }
 
-df1 <- count.in.age.group(covid.data.men)
-ggplot(df1, aes(x = EDAT, y = Count)) + 
-  labs(x = "Age Group", y = "Count") +
-  geom_col(aes(fill = Count)) +
-  geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
-  ggtitle("Men with critical COVID-19 infection grouped by age") +
-  theme_minimal()
+# df1 <- count.in.age.group(covid.data.men)
+# ggplot(df1, aes(x = EDAT, y = Count)) + 
+#   labs(x = "Age Group", y = "Count") +
+#   geom_col(aes(fill = Count)) +
+#   geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
+#   ggtitle("Men with critical COVID-19 infection grouped by age") +
+#   theme_minimal()
+# 
+# df2 <- count.in.age.group(covid.data.women)
+# ggplot(df2, aes(x = EDAT, y = Count)) + 
+#   labs(x = "Age Group", y = "Count") +
+#   geom_col(aes(fill = Count)) +
+#   geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
+#   ggtitle("Women with critical COVID-19 infection grouped by age") +
+#   theme_minimal()
 
-df2 <- count.in.age.group(covid.data.women)
-ggplot(df2, aes(x = EDAT, y = Count)) + 
+all <- count.in.age.group(covid.data)
+ggplot(all, aes(x = EDAT, y = Count)) + 
   labs(x = "Age Group", y = "Count") +
-  geom_col(aes(fill = Count)) +
-  geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
-  ggtitle("Women with critical COVID-19 infection grouped by age") +
+  geom_col(aes(fill = SEXE), position = "dodge") +
+  geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="white", 
+            size=3.5, position = position_dodge(width = 1)) +
+  ggtitle("Cases of Critical COVID-19 Infection Grouped by Age") +
   theme_minimal()
 ```
 
 
-### Evolution of Critical Infection in Time (Months) for each Gender 
+### Evolution of Critical Infections in Time by Gender 
 
 
 ```{r}
-# Group data 
-covid.data.critics <- covid.data %>% filter(ESDEVENIMENT == "Crit")
-## Plot evolution of critical patients 
-ggplot(data = covid.data.critics, aes(Week)) +
-  geom_bar(aes(fill = SEXE))
-ggplot(data = covid.data.critics, aes(Month)) +
-  geom_bar(aes(fill = SEXE))
+# Dette er det du hadde ;) Tror ikke dette stemmer helt, siden dette viser antall rader, men vi må vel telle opp i RECOMPTE?
+# Det har jeg gjort i hvert plot under dine. Hva tenker du?
+ggplot(data = covid.data, aes(Week)) +
+  labs(x = "Week", y = "Count") +
+  geom_bar(aes(fill = SEXE)) +
+  ggtitle("Evolution of critical infection in weeks") +
+  theme_minimal()
+
+count.each.week <- function(data){
+  data %>% group_by(SEXE, Week) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
+
+# Numbers can be removed. 
+week.data <- count.each.week(covid.data)
+ggplot(data = week.data, aes(x = Week, y = Count)) +
+  labs(x = "Week", y = "Count") +
+  geom_col(aes(fill = SEXE), position = "dodge") +
+  geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
+            size=2, position = position_dodge(width = 1)) +
+  ggtitle("Evolution of Critical Infections by Week") +
+  theme_minimal()
+
+# Dette er det du hadde ;) Tror ikke dette stemmer helt, siden dette viser antall rader, men vi må vel telle opp i RECOMPTE?
+# Det har jeg gjort i hvert plot under dine. Hva tenker du?
+ggplot(data = covid.data, aes(Month)) +
+  labs(x = "Month", y = "Count") +
+  geom_bar(aes(fill = SEXE)) +
+  ggtitle("Evolution of critical infection for women in months") +
+  theme_minimal()
+
+count.each.month <- function(data){
+  data %>% group_by(SEXE, Month) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
+
+# Not sure why the numbers aren't aligning properly in this case. 
+month.data <- count.each.month(covid.data)
+ggplot(data = month.data, aes(x = Month, y = Count)) +
+  labs(x = "Month", y = "Count") +
+  geom_col(aes(fill = SEXE), position = "dodge") +
+  geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
+            size=3, position = position_dodge(width = 1)) +
+  ggtitle("Evolution of Critical Infections by Month") +
+  theme_minimal()
+
 ```
 
 ### Cases of Critical Infection by Vaccination Status and Age for each Gender 
