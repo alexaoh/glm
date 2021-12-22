@@ -118,11 +118,7 @@ ggplot(all, aes(x = EDAT, y = Count)) +
 ```{r}
 # Dette er det du hadde ;) Tror ikke dette stemmer helt, siden dette viser antall rader, men vi må vel telle opp i RECOMPTE?
 # Det har jeg gjort i hvert plot under dine. Hva tenker du?
-ggplot(data = covid.data, aes(Week)) +
-  labs(x = "Week", y = "Count") +
-  geom_bar(aes(fill = SEXE)) +
-  ggtitle("Evolution of critical infection in weeks") +
-  theme_minimal()
+## Ja du har rett. Fjerner mine plot.
 
 count.each.week <- function(data){
   data %>% group_by(SEXE, Week) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
@@ -138,26 +134,19 @@ ggplot(data = week.data, aes(x = Week, y = Count)) +
   ggtitle("Evolution of Critical Infections by Week") +
   theme_minimal()
 
-# Dette er det du hadde ;) Tror ikke dette stemmer helt, siden dette viser antall rader, men vi må vel telle opp i RECOMPTE?
-# Det har jeg gjort i hvert plot under dine. Hva tenker du?
-ggplot(data = covid.data, aes(Month)) +
-  labs(x = "Month", y = "Count") +
-  geom_bar(aes(fill = SEXE)) +
-  ggtitle("Evolution of critical infection for women in months") +
-  theme_minimal()
-
 count.each.month <- function(data){
   data %>% group_by(SEXE, Month) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
 }
 
 # Not sure why the numbers aren't aligning properly in this case. 
 month.data <- count.each.month(covid.data)
-ggplot(data = month.data, aes(x = Month, y = Count)) +
+ggplot(data = month.data, aes(x = as.factor(Month), y = Count)) +
   labs(x = "Month", y = "Count") +
   geom_col(aes(fill = SEXE), position = "dodge") +
   geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
-            size=3, position = position_dodge(width = 1)) +
+            size=3, position = position_dodge(width = 0.9)) +
   ggtitle("Evolution of Critical Infections by Month") +
+  scale_x_discrete(labels = function(x) format(as.Date(x), "%b")) +
   theme_minimal()
 
 ```
@@ -179,6 +168,8 @@ ggplot(d3, aes(x = EDAT, y = Count)) +
   ggtitle("Men with critical infection per age group based on vaccination status") +
   theme_minimal()
 ```
+
+
 
 ```{r}
 knitr::kable(d4, caption = "Women with critical infection as function of vaccination status and age")
@@ -224,5 +215,55 @@ par(mfrow = c(2,2))
 plot(model2, ask = F)
 par(mfrow = c(1,1))
 ```
+
+```{r}
+# Vanskelig å skjønne hva som blir Y i modellen vår. Tenker kanskje å 
+# bruke måneden som en kategorisk variabel, og summere opp RECOMPTE.
+# Da kan vi se om vaksinasjonsstatus har noe og si for totalt antall 
+# kritiske pasienter i en spesifikk måned.
+
+head(covid.data)
+dim(covid.data)
+covid.data.aggr <- aggregate(RECOMPTE ~ EDAT + SEXE + PAUTA + Month,
+                             covid.data, FUN = sum)
+covid.data.aggr$Month <- as.factor(covid.data.aggr$Month)
+head(covid.data.aggr)
+dim(covid.data.aggr)
+# summary(covid.data.aggr)
+# str(covid.data.aggr)
+```
+
+```{r}
+model3 <- lm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr)
+summary(model3)
+par(mfrow = c(2,2))
+plot(model3, ask = F)
+par(mfrow = c(1,1))
+```
+
+```{r}
+model4 <- lm(RECOMPTE ~ SEXE + PAUTA + Month, data = covid.data.aggr)
+summary(model4)
+par(mfrow = c(2,2))
+plot(model4, ask = F)
+par(mfrow = c(1,1))
+```
+
+```{r}
+model5 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model5)
+par(mfrow = c(2,2))
+plot(model5, ask = F)
+par(mfrow = c(1,1))
+```
+
+```{r}
+# Mangler fortsatt analyse for å se om det er en grei fit, men ser ihvertfall
+# mer normalt ut. Når vi får på plass goodness of fit measures, kan vi teste 
+# den mot multinomial eventuelt, eller med interactions. Om det ser greit ut
+# er det vel nok bevis til å si at vaksinasjonsstatus påvirker RECOMPTE.
+```
+
 
 # Conclusions
