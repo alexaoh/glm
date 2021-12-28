@@ -246,7 +246,6 @@ model4 <- lm(RECOMPTE ~ SEXE + PAUTA + Month, data = covid.data.aggr)
 summary(model4)
 par(mfrow = c(2,2))
 plot(model4, ask = F)
-par(mfrow = c(1,1))
 ```
 
 ```{r}
@@ -255,15 +254,46 @@ model5 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr,
 summary(model5)
 par(mfrow = c(2,2))
 plot(model5, ask = F)
-par(mfrow = c(1,1))
+# Checking for overdispersion
+PS <- sum(residuals(model5, type="pearson")^2)
+phi <- PS / model5$df.res
+phi
 ```
 
 ```{r}
-# Mangler fortsatt analyse for å se om det er en grei fit, men ser ihvertfall
-# mer normalt ut. Når vi får på plass goodness of fit measures, kan vi teste 
-# den mot multinomial eventuelt, eller med interactions. Om det ser greit ut
-# er det vel nok bevis til å si at vaksinasjonsstatus påvirker RECOMPTE.
+model6 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model6)
+par(mfrow = c(2,2))
+plot(model6, ask = F)
+# Checking for overdispersion
+PS <- sum(residuals(model6, type="pearson")^2)
+phi <- PS / model6$df.res
+phi
 ```
+
+```{r}
+model7 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month + EDAT:PAUTA, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model7)
+par(mfrow = c(2,2))
+plot(model7, ask = F)
+# Checking for overdispersion
+PS <- sum(residuals(model7, type="pearson")^2)
+PS
+phi <- PS / model7$df.res
+phi
+anova(model7)
+qchisq(0.95, model7$df.res, lower.tail=TRUE)
+```
+
+Har prøvd en del forskjellige modeller, men de blir aldri gode nok til å 
+aksepteres. Jo flere interactions vi tillater, jo bedre blir den, men også kaotisk.
+Gir det mening å gruppere i måneder? Tror vi er nødt til å gjøre noe i den duren
+for å ha nok eksempler til å fitte dataen på. Alle modellene er overdispersed,
+men jeg vet ikke hva vi kan gjøre med det? Er ikke sikkert det forventes at modellen
+skal være fantastisk, idk.
+
 
 
 # Conclusions
