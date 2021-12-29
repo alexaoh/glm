@@ -11,12 +11,17 @@ output:
   #   theme: readable
   #   highlight: textmate
   #   number_sections: false
-  pdf_document
+  pdf_document:
+    fig_caption: true
+    number_sections: true
 editor_options: 
   chunk_output_type: console
 geometry:
   margin = 2cm
 ---
+
+\tableofcontents
+\newpage
 
 ```{r setup, include=FALSE}
 rm(list = ls())
@@ -27,6 +32,8 @@ library(lubridate)
 library(ggplot2)
 library(car)
 ```
+
+# Introduction 
 
 We are analyzing a data set that contains information about the impact of COVID-19 by vaccination status in 2021 in Catalunya. The data comes from various information systems of the Department of Health and the Catalan Health Service, as detailed [here](https://dadescovid.cat/documentacio). More specifically, the data shows the impact of COVID-19 (new cases, hospitalizations, critical hospitalizations and deaths) in the entirety of Catalunya, from January 1st 2021 until now, for the date of reference of each record, by gender, by age group, according to the vaccination status of the people. Keep in mind that a person is counted as many times as the number of events that has happened to the individual in question. This means that each person may be counted up to four times in the data set as a whole. More information about the data set can be found [here](https://analisi.transparenciacatalunya.cat/en/Salut/Impacte-del-COVID-19-per-estat-de-vacunaci-/6izj-g3sb). Note that the data we are using was downloaded December 17th at 12:00. 
 
@@ -84,7 +91,7 @@ covid.data.men <- covid.data %>% filter(SEXE == "Home")
 
 The data set is split into men and women. There are `r sum(covid.data.men$RECOMPTE)` critical cases for men and `r sum(covid.data.women$RECOMPTE)` critical cases for women in the data. 
 
-### Cases of Critical Infection by Age and by Gender
+## Cases of Critical Infection by Age and by Gender
 
 ```{r}
 count.in.age.group <- function(data){
@@ -102,7 +109,7 @@ ggplot(all, aes(x = EDAT, y = Count)) +
 ```
 
 
-### Evolution of Critical Infections in Time by Gender 
+## Evolution of Critical Infections in Time by Gender 
 
 ```{r}
 count.each.week <- function(data){
@@ -132,7 +139,7 @@ ggplot(data = month.data, aes(x = as.factor(Month), y = Count)) +
   theme_minimal()
 ```
 
-### Cases of Critical Infection by Vaccination Status and Age for each Gender 
+## Cases of Critical Infection by Vaccination Status and Age for each Gender 
 
 ```{r, warning=FALSE}
 group.by.vacc.age.gender <- function(data){
@@ -160,7 +167,7 @@ knitr::kable(d3, caption = "Men with Critical Infection as
              Function of Vaccination Status and Age")
 ```
 
-### Vaccination Status per Age Group
+## Vaccination Status per Age Group
 
 When considering the critical cases by vaccination status and age for each gender, it is good to keep the vaccination status per age group in the population in mind. This data is shown below, where all four different classifications of severity of infection are kept in the data set. 
 
@@ -181,52 +188,129 @@ ggplot(vacc.status.per.age, aes(x = EDAT, y = Count)) +
 ```
 
 # Model Fit  
-### Linear Model
 
 We wish to examine how the vaccination status affects the number of critical patients
 in this period. Since we observe that the number of critical patients vary 
-very much from month to month, we choose to group aggregate the number of 
+very much from month to month, we choose to aggregate the number of 
 patients each month, and include it as a categorical covariate in our model.
 
 ```{r}
 covid.data.aggr <- aggregate(RECOMPTE ~ EDAT + SEXE + PAUTA + Month,
                              covid.data, FUN = sum)
-covid.data.aggr$Month <- as.factor(covid.data.aggr$Month)
 head(covid.data.aggr)
 dim(covid.data.aggr)
 ```
 
+## Linear Model
+
 First we try a simple linear model with all covariates included.
-As the adjusted R-squared is low, and the residuals does not fit the normal 
+As the adjusted R-squared is low, and the residuals do not fit the normal 
 assumption, we reject this model.
 
 ```{r}
-model3 <- lm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr)
-summary(model3)
+model1 <- lm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr)
+summary(model1)
 par(mfrow = c(2,2))
-plot(model3, ask = F)
+plot(model1, ask = F)
 ```
 
 Since we have aggregated the number of critical patients by month, we can interpret 
-this data collection as a counting process which starts each months.
-This is a poisson process, which we can fit as a general linear model
+this data collection as a counting process which starts each month.
+
+## Generalized Linear Model
+
+The described counting process is a poisson process, which we can fit as a generalized linear model
 from the poisson family.
-The model is fitted without interraction, and includes all covariates.
+The model is fitted without interaction, and includes all covariates.
 The residuals still look bad, and the model has a dispersion parameter above 
 seven. 
 
 ```{r}
-model5 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr, 
+model2 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model2)
+par(mfrow = c(2,2))
+plot(model2, ask = F)
+# Checking for overdispersion.
+PS <- sum(residuals(model2, type="pearson")^2)
+PS
+phi <- PS / model2$df.res
+phi
+```
+
+---
+
+Next we include an interaction between the vaccination status and month.
+This makes sense because the vaccination status should become more skewed towards complete as time goes
+and more people are vaccinated.
+
+```{r}
+model3 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model3)
+par(mfrow = c(2,2))
+plot(model3, ask = F)
+# Checking for overdispersion.
+PS <- sum(residuals(model3, type="pearson")^2)
+PS
+phi <- PS / model3$df.res
+phi
+```
+
+The model is improved, but the residuals still show clear patterns, and the model
+is overdispersed.
+
+---
+
+Now we include an interaction between vaccination status and age group.
+This makes sense since the older age group likely was vaccinated earlier than
+the younger age group. 
+
+```{r}
+model4 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month + EDAT:PAUTA, data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model4)
+par(mfrow = c(2,2))
+plot(model4, ask = F)
+# Checking for overdispersion
+PS <- sum(residuals(model4, type="pearson")^2)
+PS
+phi <- PS / model4$df.res
+phi
+anova(model4)
+```
+
+Now the model shows clear improvement, and the dispersion parameter is reduced
+to right above two.
+
+---
+
+Including an interaction between all three covariates provides us with an 
+even better model, as shown below.
+The graphical plots are much better, and the dispersion parameter 1.36, which 
+is still slightly overdispersed, but better.
+The Pearson residual for the model is 130.4, which is slightly below 
+the critical value for the $\chi_{n - p}^2$ distribution. 
+Thus, we can conclude that this model is a good fit to the data.
+
+
+```{r}
+model5 <- glm(RECOMPTE ~ SEXE + EDAT*PAUTA*Month,
+              data = covid.data.aggr, 
               family = poisson(link = "log"))
 summary(model5)
 par(mfrow = c(2,2))
 plot(model5, ask = F)
 # Checking for overdispersion
 PS <- sum(residuals(model5, type="pearson")^2)
+PS
 phi <- PS / model5$df.res
 phi
+anova(model5)
+qchisq(0.99, model5$df.res, lower.tail=TRUE)
 ```
 
+<<<<<<< HEAD
 Next we include an interaction between the vaccination status and month.
 This has sense because the vaccination status should increase as a time goes,
 and more people is vaccinated.
@@ -290,6 +374,9 @@ Anova(model8, type = "2")
 qchisq(0.99, model8$df.res, lower.tail=TRUE)
 ```
 
+=======
+Also, note that the AIC decreases for each of the increasingly complicated generalized linear models that are fitted to the data. This shows that the increasingly more complicated models perform better compared to the earlier models. Moreover, the Pearson residuals decrease as well, which points to the same conclusion. 
+>>>>>>> c09a86831496b85f2c50288e5d4d44419e522868
 
 # Conclusions
 
