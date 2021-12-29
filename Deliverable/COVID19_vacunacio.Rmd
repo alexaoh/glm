@@ -174,68 +174,39 @@ ggplot(vacc.status.per.age, aes(x = EDAT, y = Count)) +
 ```
 
 # Model Fit  
-
-### EDA before Model Fit
-
-```{r}
-plot(covid.data$PAUTA, covid.data$RECOMPTE)
-```
-
 ### Linear Model
 
-First we will try a linear model, to see if there is a linear relationship in the data. 
+We wish to examine how the vaccination status affects the number of critical patients
+in this period. Since we observe that the number of critical patients vary 
+very much from month to month, we choose to group aggregate the number of 
+patients each month, and include it as a categorical covariate in our model.
 
 ```{r}
-model1 <- lm(RECOMPTE ~ SEXE + EDAT + DATA + PAUTA, data = covid.data) #Blir dette rett?
-summary(model1)
-par(mfrow = c(2,2))
-plot(model1, ask = F)
-par(mfrow = c(1,1))
-```
-
-Looking at the plots above, this is obviously not a good model. Moreover, The $R^2$ is under $10\%$ which is very bad. 
-
-### Generalized Linear Model
-
-```{r}
-model2 <- glm(RECOMPTE ~ SEXE + EDAT + DATA + PAUTA, family = poisson(link = "log"), data = covid.data)
-summary(model2)
-par(mfrow = c(2,2))
-plot(model2, ask = F)
-par(mfrow = c(1,1))
-```
-
-```{r}
-# Vanskelig å skjønne hva som blir Y i modellen vår. Tenker kanskje å 
-# bruke måneden som en kategorisk variabel, og summere opp RECOMPTE.
-# Da kan vi se om vaksinasjonsstatus har noe og si for totalt antall 
-# kritiske pasienter i en spesifikk måned.
-
-head(covid.data)
-dim(covid.data)
 covid.data.aggr <- aggregate(RECOMPTE ~ EDAT + SEXE + PAUTA + Month,
                              covid.data, FUN = sum)
 covid.data.aggr$Month <- as.factor(covid.data.aggr$Month)
 head(covid.data.aggr)
 dim(covid.data.aggr)
-# summary(covid.data.aggr)
-# str(covid.data.aggr)
 ```
+
+First we try a simple linear model with all covariates included.
+As the adjusted R-squared is low, and the residuals does not fit the normal 
+assumption, we reject this model.
 
 ```{r}
 model3 <- lm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr)
 summary(model3)
 par(mfrow = c(2,2))
 plot(model3, ask = F)
-par(mfrow = c(1,1))
 ```
 
-```{r}
-model4 <- lm(RECOMPTE ~ SEXE + PAUTA + Month, data = covid.data.aggr)
-summary(model4)
-par(mfrow = c(2,2))
-plot(model4, ask = F)
-```
+Since we have aggregated the number of critical patients by month, we can interpret 
+this data collection as a counting process which starts each months.
+This is a poisson process, which we can fit as a general linear model
+from the poisson family.
+The model is fitted without interraction, and includes all covariates.
+The residuals still look bad, and the model has a dispersion parameter above 
+seven. 
 
 ```{r}
 model5 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month, data = covid.data.aggr, 
@@ -249,6 +220,10 @@ phi <- PS / model5$df.res
 phi
 ```
 
+Next we include an interaction between the vaccination status and month.
+This has sense because the vaccination status should increase as a time goes,
+and more people is vaccinated.
+
 ```{r}
 model6 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month, data = covid.data.aggr, 
               family = poisson(link = "log"))
@@ -260,6 +235,12 @@ PS <- sum(residuals(model6, type="pearson")^2)
 phi <- PS / model6$df.res
 phi
 ```
+
+The model improves, but the residuals still shows clear patterns, and the model
+is overdispersed.
+Now we include an interaction between vaccination status and age group.
+This has sense since the older age group likely was vaccinated earlier than
+the younger age group.
 
 ```{r}
 model7 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month + EDAT:PAUTA, data = covid.data.aggr, 
@@ -276,12 +257,9 @@ anova(model7)
 qchisq(0.95, model7$df.res, lower.tail=TRUE)
 ```
 
-Har prøvd en del forskjellige modeller, men de blir aldri gode nok til å 
-aksepteres. Jo flere interactions vi tillater, jo bedre blir den, men også kaotisk.
-Gir det mening å gruppere i måneder? Tror vi er nødt til å gjøre noe i den duren
-for å ha nok eksempler til å fitte dataen på. Alle modellene er overdispersed,
-men jeg vet ikke hva vi kan gjøre med det? Er ikke sikkert det forventes at modellen
-skal være fantastisk, idk.
+Now the model shows clear improvement, and the dispersion parameter is reduced
+to right above two.
+
 
 
 
