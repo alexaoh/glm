@@ -261,6 +261,21 @@ Now the model shows clear improvement, and the dispersion parameter is reduced
 to right above two.
 
 
+```{r}
+model8 <- glm(RECOMPTE ~ SEXE + EDAT*PAUTA*Month,
+              data = covid.data.aggr, 
+              family = poisson(link = "log"))
+summary(model8)
+par(mfrow = c(2,2))
+plot(model8, ask = F)
+# Checking for overdispersion
+PS <- sum(residuals(model8, type="pearson")^2)
+PS
+phi <- PS / model8$df.res
+phi
+anova(model8)
+qchisq(0.95, model8$df.res, lower.tail=TRUE)
+```
 
 
 # Conclusions
