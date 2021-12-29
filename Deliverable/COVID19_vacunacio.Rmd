@@ -17,7 +17,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 rm(list = ls())
-knitr::opts_chunk$set(echo = TRUE, warning = F)
+knitr::opts_chunk$set(echo = TRUE, warning = F, fig.width = 10)
 # setwd("/home/ajo/gitRepos/glm/Deliverable")
 library(dplyr)
 library(lubridate)
@@ -31,15 +31,15 @@ The data set contains 6 columns. They are explained shortly below.
 | Variable      | SEXE        | EDAT                                                                        | DATA | ESDEVENIMENT                             | PAUTA                          | RECOMPTE |
 |---------------|-------------|-----------------------------------------------------------------------------|------|------------------------------------------|--------------------------------|----------|
 | Explanation   | Sex         | Age Group                                                                   | Date | Event (Severity of illness)              | Vaccination status             | Event Count    |
-| Factor Levels | Homme, Dona | 0-9, 10-19, 20-29,  30-39, 40-49, 50-59,  60-69, 70-79, 80$\geq$, Not classified |      | Cas, Hospitalització, Critics, Defunció  | No iniciada, Parcial, Completa |          |
+| Factor Levels | Homme, Dona, Not classified | 0-9, 10-19, 20-29,  30-39, 40-49, 50-59,  60-69, 70-79, 80$\geq$, Not classified |      | Cas, Hospitalització, Critics, Defunció  | No iniciada, Parcial, Completa |          |
 
 # Objective
 
 The objective of the analysis is to answer the following question: 
 *Do differences in the severity of COVID-19 infection exist between people that are unvaccinated, people that only have received one dose and people that are fully vaccinated?*
-More precisely, do the amount of people with a *critical* infection depend on their respective vaccination status? 
+More precisely, does the amount of people with a *critical* infection depend on their respective vaccination statuses? 
 
-The analysis will be performed separately for men and women. Moreover, we will only consider people that are older than 30 and only data from the May 1st to December 12th. Additionally, we will only analyze differences in people that are reported with a critical event, disregarding people with new cases, people that are hospitalized (not critical) and people that have died. 
+The analysis will be performed separately for men and women. Moreover, we will only consider people that are older than 30 and only data from May 1st to December 12th. Additionally, we will only analyze differences in people that are reported with a critical event, disregarding people with new cases, people that are hospitalized (not critical) and people that have died. 
 
 # Data Preparation
 
@@ -50,24 +50,25 @@ data <- read.csv("Impacte_del_COVID-19.csv") # Data updated 17.12.21.
 
 clean <- function(data){
   data$DATA <- as.Date(data$DATA, format = "%d/%m/%Y")
+  #data$DATA <- parse_date_time(data$DATA, orders = "%d/%m/%Y")
   data$EDAT <- as.factor(data$EDAT)
-  covid.data <- data %>% filter(DATA >= "2021-05-01" & DATA <= "2021-12-12") %>% 
-        filter(EDAT %in% c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més")) %>%
-        # What about "No classificat" in age? They are not added right now!
-        filter(ESDEVENIMENT == "Crítics")
-  #covid.data$EDAT <- factor(covid.data$EDAT, labels = c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
-  #covid.data$ESDEVENIMENT <- factor(covid.data$ESDEVENIMENT, labels = c("Cas", "Crit", "Def", "Hosp"))
+  covid.data <- data %>% filter(DATA >= "2021-05-01" & DATA < "2021-12-13") %>% 
+        filter(EDAT %in% c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
+        # People with EDAT "No classificat" are not added (these are the same people as "No classificat" in SEXE).
+  
   covid.data$PAUTA <- factor(covid.data$PAUTA)
   covid.data$SEXE <- factor(covid.data$SEXE)
   
-  # Create week and month variables
-  covid.data$Week <- floor_date(covid.data$DATA, "week")
-  covid.data$Month <- floor_date(covid.data$DATA, "month")
-
+  # Create week and month variables.
+  covid.data$Week <- as.factor(strftime(covid.data$DATA, format = "%W"))
+  covid.data$Month <- as.factor(strftime(covid.data$DATA, format = "%m"))
+  
   return(covid.data)
 }
-covid.data <- clean(data)
+covid.data <- clean(data) %>% filter(ESDEVENIMENT == "Crítics")
 ```
+
+Note also that there are `r dim(data %>% filter(SEXE == "No classificat" & EDAT == "No classificat"))[[1]]` registries in the data set that are not classified into groups in `SEXE` and `EDAT`. These rows are disregarded in the analysis. 
 
 # Exploratory Data Analysis 
 
@@ -85,27 +86,11 @@ count.in.age.group <- function(data){
   data %>% group_by(SEXE, EDAT) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
 }
 
-# df1 <- count.in.age.group(covid.data.men)
-# ggplot(df1, aes(x = EDAT, y = Count)) + 
-#   labs(x = "Age Group", y = "Count") +
-#   geom_col(aes(fill = Count)) +
-#   geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
-#   ggtitle("Men with critical COVID-19 infection grouped by age") +
-#   theme_minimal()
-# 
-# df2 <- count.in.age.group(covid.data.women)
-# ggplot(df2, aes(x = EDAT, y = Count)) + 
-#   labs(x = "Age Group", y = "Count") +
-#   geom_col(aes(fill = Count)) +
-#   geom_text(aes(label=Count), vjust=1.6, color="white", size=3.5) +
-#   ggtitle("Women with critical COVID-19 infection grouped by age") +
-#   theme_minimal()
-
 all <- count.in.age.group(covid.data)
 ggplot(all, aes(x = EDAT, y = Count)) + 
   labs(x = "Age Group", y = "Count") +
   geom_col(aes(fill = SEXE), position = "dodge") +
-  geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="white", 
+  geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
             size=3.5, position = position_dodge(width = 1)) +
   ggtitle("Cases of Critical COVID-19 Infection Grouped by Age") +
   theme_minimal()
@@ -114,19 +99,13 @@ ggplot(all, aes(x = EDAT, y = Count)) +
 
 ### Evolution of Critical Infections in Time by Gender 
 
-
 ```{r}
-# Dette er det du hadde ;) Tror ikke dette stemmer helt, siden dette viser antall rader, men vi må vel telle opp i RECOMPTE?
-# Det har jeg gjort i hvert plot under dine. Hva tenker du?
-## Ja du har rett. Fjerner mine plot.
-
 count.each.week <- function(data){
   data %>% group_by(SEXE, Week) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
 }
 
-# Numbers can be removed. 
 week.data <- count.each.week(covid.data)
-ggplot(data = week.data, aes(x = Week, y = Count)) +
+ggplot(data = week.data, aes(x = as.factor(Week), y = Count)) +
   labs(x = "Week", y = "Count") +
   geom_col(aes(fill = SEXE), position = "dodge") +
   geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
@@ -138,7 +117,6 @@ count.each.month <- function(data){
   data %>% group_by(SEXE, Month) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
 }
 
-# Not sure why the numbers aren't aligning properly in this case. 
 month.data <- count.each.month(covid.data)
 ggplot(data = month.data, aes(x = as.factor(Month), y = Count)) +
   labs(x = "Month", y = "Count") +
@@ -146,45 +124,56 @@ ggplot(data = month.data, aes(x = as.factor(Month), y = Count)) +
   geom_text(aes(label=Count, group= SEXE), vjust = 1.6, color="black", 
             size=3, position = position_dodge(width = 0.9)) +
   ggtitle("Evolution of Critical Infections by Month") +
-  scale_x_discrete(labels = function(x) format(as.Date(x), "%b")) +
   theme_minimal()
-
 ```
 
 ### Cases of Critical Infection by Vaccination Status and Age for each Gender 
 
 ```{r, warning=FALSE}
+group.by.vacc.age.gender <- function(data){
+  data %>% group_by(SEXE, EDAT, PAUTA) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
+d5 <- group.by.vacc.age.gender(covid.data)
+
+ggplot(d5, aes(x = EDAT, y = Count)) + 
+  labs(x = "Age Group", y = "Count") +
+  geom_col(aes(fill = PAUTA), position = "dodge") +
+  geom_text(aes(label=Count, group= PAUTA), vjust = 1.6, color="black", 
+            size=2.5, position = position_dodge(width = 0.9)) +
+  ggtitle("Critical Infections per Age Group based on Vaccination Status") +
+  facet_wrap(~ SEXE) + 
+  theme_minimal()
+
 group.by.vacc.age <- function(data){
   data %>% group_by(EDAT, PAUTA) %>% summarise(Count = sum(RECOMPTE), .groups = "keep") 
 }
-d3 <- group.by.vacc.age(covid.data.men)
 d4 <- group.by.vacc.age(covid.data.women)
-
-knitr::kable(d3, caption = "Men with critical infection as function of vaccination status and age")
-# Vil helst lage en tabell med EDAT i x og PAUTA i y (ser bedre ut), men får det ikke til. 
-ggplot(d3, aes(x = EDAT, y = Count)) + 
-  labs(x = "Age Group", y = "Count") +
-  geom_col(aes(fill = PAUTA)) +
-  ggtitle("Men with critical infection per age group based on vaccination status") +
-  theme_minimal()
+knitr::kable(d4, caption = "Women with Critical Infection as Function of Vaccination Status and Age")
+d3 <- group.by.vacc.age(covid.data.men)
+knitr::kable(d3, caption = "Men with Critical Infection as Function of Vaccination Status and Age")
 ```
 
+### Vaccination Status per Age Group
 
+When considering the critical cases by vaccination status and age for each gender, it is good to keep the vaccination status per age group in the population in mind. This data is shown below, where all four different classifications of severity of infection are kept in the data set. 
 
 ```{r}
-knitr::kable(d4, caption = "Women with critical infection as function of vaccination status and age")
-# Vil helst lage en tabell med EDAT i x og PAUTA i y (ser bedre ut), men får det ikke til. 
+count.vacc.status.in.age.group <- function(data){
+  data %>% group_by(SEXE, EDAT, PAUTA) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
 
-ggplot(d4, aes(x = EDAT, y = Count)) + 
+vacc.status.per.age <- count.vacc.status.in.age.group(clean(data))
+ggplot(vacc.status.per.age, aes(x = EDAT, y = Count)) + 
   labs(x = "Age Group", y = "Count") +
-  geom_col(aes(fill = PAUTA)) +
-  ggtitle("Women with critical infection per age group based on vaccination status") +
+  geom_col(aes(fill = PAUTA), position = "dodge") +
+  geom_text(aes(label=Count, group= PAUTA), vjust = 1.6, color="black", 
+            size=2.5, position = position_dodge(width = 0.9)) +
+  ggtitle("Vaccination Status per Age Group") +
+  facet_wrap(~ SEXE) + 
   theme_minimal()
 ```
 
 # Model Fit  
-
-Try models: Multinomial, Poisson and Binomial (for each row in a contingency table) (As mentioned in lecture)
 
 ### EDA before Model Fit
 
