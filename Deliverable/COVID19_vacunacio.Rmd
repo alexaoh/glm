@@ -10,7 +10,7 @@ output:
   #   toc_depth: 3
   #   theme: readable
   #   highlight: textmate
-  #   number_sections: false
+  #   number_sections: true
   pdf_document:
     fig_caption: true
     number_sections: true
@@ -61,7 +61,6 @@ data <- read.csv("Impacte_del_COVID-19.csv") # Data updated 17.12.21.
 
 clean <- function(data){
   data$DATA <- as.Date(data$DATA, format = "%d/%m/%Y")
-  #data$DATA <- parse_date_time(data$DATA, orders = "%d/%m/%Y")
   data$EDAT <- as.factor(data$EDAT)
   covid.data <- data %>% filter(DATA >= "2021-05-01" & DATA < "2021-12-13") %>% 
         filter(EDAT %in% c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
@@ -91,7 +90,7 @@ covid.data.men <- covid.data %>% filter(SEXE == "Home")
 
 The data set is split into men and women. There are `r sum(covid.data.men$RECOMPTE)` critical cases for men and `r sum(covid.data.women$RECOMPTE)` critical cases for women in the data. 
 
-## Cases of Critical Infection by Age and by Gender
+## Critical Infections by Age
 
 ```{r}
 count.in.age.group <- function(data){
@@ -109,7 +108,7 @@ ggplot(all, aes(x = EDAT, y = Count)) +
 ```
 
 
-## Evolution of Critical Infections in Time by Gender 
+## Evolution of Critical Infections with Time 
 
 ```{r}
 count.each.week <- function(data){
@@ -139,7 +138,7 @@ ggplot(data = month.data, aes(x = as.factor(Month), y = Count)) +
   theme_minimal()
 ```
 
-## Cases of Critical Infection by Vaccination Status and Age for each Gender 
+## Critical Infections by Vaccination Status and Age 
 
 ```{r, warning=FALSE}
 group.by.vacc.age.gender <- function(data){
@@ -167,25 +166,78 @@ knitr::kable(d3, caption = "Men with Critical Infection as
              Function of Vaccination Status and Age")
 ```
 
-## Vaccination Status per Age Group
+## Cases by Vaccination Status per Age Group
 
-When considering the critical cases by vaccination status and age for each gender, it is good to keep the vaccination status per age group in the population in mind. This data is shown below, where all four different classifications of severity of infection are kept in the data set. 
+When considering the critical cases by vaccination status and age for each gender, it is good to keep all cases per vaccination status per age group in the entire data set in mind. This data is shown below, where all four different classifications of severity of infection are counted in the data set. 
 
 ```{r}
-count.vacc.status.in.age.group <- function(data){
-  data %>% group_by(SEXE, EDAT, PAUTA) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
-}
-
-vacc.status.per.age <- count.vacc.status.in.age.group(clean(data))
+vacc.status.per.age <- group.by.vacc.age.gender(clean(data))
 ggplot(vacc.status.per.age, aes(x = EDAT, y = Count)) + 
   labs(x = "Age Group", y = "Count") +
   geom_col(aes(fill = PAUTA), position = "dodge") +
   geom_text(aes(label=Count, group= PAUTA), vjust = 1.6, color="black", 
             size=2.5, position = position_dodge(width = 0.9)) +
-  ggtitle("Vaccination Status per Age Group") +
+  ggtitle("All Cases per Vaccination Status per Age Group") +
   facet_wrap(~ SEXE) + 
   theme_minimal()
 ```
+
+## Critical Cases Relative to all Cases by Vaccination Status per Age Group
+
+The next plot shows the critical cases of COVID-19 relative to all cases by vaccination status in the entire data set per age group. Essentially, this shows the proportion of the counts of the two earlier plots. Thus, for example, even though plot 4.3 shows that there are more critical cases for completely vaccinated individuals in the ages greater than 70 (except for women aged 70 to 79), plot 4.5 shows that the proportion of cases is still greatest for the non-vaccinated (except for women aged 80 or more). This is because most of the population in these ages are in fact completely vaccinated. 
+
+```{r}
+d6 <- d5
+d6$Count <- d5$Count/vacc.status.per.age$Count
+ggplot(d6, aes(x = EDAT, y = Count)) + 
+  labs(x = "Age Group", y = "Proportion") +
+  geom_col(aes(fill = PAUTA), position = "dodge") +
+  geom_text(aes(label=round(Count,4), group= PAUTA), vjust = 1.6, color="black", 
+            size=2, position = position_dodge(width = 0.9)) +
+  ggtitle("Proportion of Critical Cases to all Cases by Vaccination Status per Age Group") +
+  facet_wrap(~ SEXE) + 
+  theme_minimal()
+```
+
+## Cases by Vaccination Status with Time (Months)
+
+All cases per vaccination status in the entire data set is shown by month in the plot below. It is apparent that the later in the year, the more cases are registered for the fully vaccinated. This is most likely a result of the fact that more and more people are getting vaccinated. i.e. the proportion of vaccinated people in the population is growing throughout the year. 
+
+```{r}
+vacc.status.with.time <- function(data){
+  data %>% group_by(SEXE, PAUTA, Month) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
+vacc.with.time <- vacc.status.with.time(clean(data))
+ggplot(data = vacc.with.time, aes(x = as.factor(Month), y = Count)) +
+  labs(x = "Month", y = "Count") +
+  geom_col(aes(fill = PAUTA), position = "dodge") +
+  geom_text(aes(label=Count, group= PAUTA), vjust = 1.6, color="black",
+             size=2, position = position_dodge(width = 0.9)) +
+  ggtitle("Evolution of all Cases per Vaccine Status by Month") +
+  facet_wrap(~ SEXE) + 
+  theme_minimal()
+```
+
+## Critical Cases by Vaccination Status with Time (Months)
+
+Only the critical cases per vaccination status is shown by month below. 
+
+```{r}
+vacc.status.with.time <- function(data){
+  data %>% group_by(SEXE, PAUTA, Month) %>% summarise(Count = sum(RECOMPTE), .groups = "keep")
+}
+vacc.with.time.critical <- vacc.status.with.time(covid.data)
+ggplot(data = vacc.with.time.critical, aes(x = as.factor(Month), y = Count)) +
+  labs(x = "Month", y = "Count") +
+  geom_col(aes(fill = PAUTA), position = "dodge") +
+  geom_text(aes(label=Count, group= PAUTA), vjust = 1.6, color="black",
+             size=2, position = position_dodge(width = 0.9)) +
+  ggtitle("Evolution of Critical Cases per Vaccine Status by Month") +
+  facet_wrap(~ SEXE) + 
+  theme_minimal()
+```
+
+Already, the exploratory data analysis hints at the fact that the amount of critical infections does depend on the vaccination status. This should be proven statistically however, an issue that is discussed in the following. 
 
 # Model Fit  
 
@@ -323,9 +375,9 @@ are included with interactions, and the model proved to fit the data well.
 Returning to the main question: does the amount of people with a *critical* infection depend on their respective vaccination statuses? Based on the final, very complicated model, the answer is yes. The Anova table shows that all covariates containing `PAUTA` are significant to any reasonable significance level. Moreover, looking at the $p$-values from the summary of the final model, we can conclude the following: To a significance level of $\alpha = 0.05$
 
 
-* `PAUTA: No iniciada` is significantly different from the baseline (`PAUTA: Completa`) ($p = 8.26\cdot10^{-5}$. The estimated parameter value is $\approx 2.82$, which means that the amount of critical infections per month is increased when individuals have not received any vaccines, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical (the other covariates are kept fixed).
-* `Pauta: Parcial` is significantly different from the baseline (`PAUTA: Completa`) ($p \approx 0.27$. The estimated parameter value is $\approx 3.93$, which means that the amount of critical infections per month is increased when individuals are partially vaccinated, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical. 
+* `PAUTA: No iniciada` is significantly different from the baseline (`PAUTA: Completa`) ($p = 8.26\cdot10^{-5}$). The estimated parameter value is $\approx 2.82$, which means that the amount of critical infections per month is increased when individuals have not received any vaccines, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical (the other covariates are kept fixed).
+* `Pauta: Parcial` is significantly different from the baseline (`PAUTA: Completa`) ($p \approx 0.27$). The estimated parameter value is $\approx 3.93$, which means that the amount of critical infections per month is increased when individuals are partially vaccinated, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical. 
 * The interactions between `EDAT: 80 o més` and `PAUTA: Parcial`, and `EDAT: 80 o més` and `PAUTA: No iniciada`, are statistically significant to $\alpha$. Both parameter estimates are negative, which means that the model predicts the amount of critical infections in this age group to be larger when the individuals are fully vaccinated. This is a strange result, which goes against what one might think. When reflecting on this result, keep in mind the fact that most of the people in this age group are fully vaccinated, as shown in the exploratory data analysis. This might give rise to this slightly strange result. 
-* The interaction effect between `PAUTA: Parcial` and `Month` is statistically significant from month 8 onwards. All the parameter estimates in question are negative, which means that the model predicts a smaller amount of critical infections in the later months, when the individuals are partially vaccinated, compared to when the individuals are completely vaccinated. This is the case when the rest of the patient profile is kept fixed. This is also a strange result, which might depend on different facts in the data. 
+* The interaction effect between `PAUTA: Parcial` and `Month` is statistically significant from month 8 onwards. All the parameter estimates in question are negative, which means that the model predicts a smaller amount of critical infections in the later months when the individuals are partially vaccinated, compared to when the individuals are completely vaccinated. This is the case when the rest of the patient profile is kept fixed. This is also a strange result, which might depend on different relationships in the data. Plot 4.6 might help to explain this, since a larger and larger proportion of the population are vaccinated towards the end of the year. Interestingly, month 8 is the first month where the amount of cases (taking all cases into account), for both sexes, is larger for the fully vaccinated compared to the two other vaccination statuses. 
 
-Without being sure about the reasons for all the predictions listed above, where some of them are strange, we can conclude that the amount of people with a critical infection depends on the vaccination status. 
+Without being sure about the reasons for all the predictions listed above, noting that some of them are strange, we can conclude that the amount of people with a critical infection depends on the vaccination status. 
