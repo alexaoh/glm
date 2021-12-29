@@ -4,15 +4,18 @@ subtitle: "Linear and Generalized Linear Models"
 author: "Ulrik Danielsen, Alexander J Ohrt"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
-  html_document:
-    code_folding: hide
-    toc: true
-    toc_depth: 3
-    theme: readable
-    highlight: textmate
-    number_sections: false
+  # html_document:
+  #   code_folding: hide
+  #   toc: true
+  #   toc_depth: 3
+  #   theme: readable
+  #   highlight: textmate
+  #   number_sections: false
+  pdf_document
 editor_options: 
   chunk_output_type: console
+geometry:
+  margin = 2cm
 ---
 
 ```{r setup, include=FALSE}
@@ -28,10 +31,10 @@ We are analyzing a data set that contains information about the impact of COVID-
 
 The data set contains 6 columns. They are explained shortly below. 
 
-| Variable      | SEXE        | EDAT                                                                        | DATA | ESDEVENIMENT                             | PAUTA                          | RECOMPTE |
-|---------------|-------------|-----------------------------------------------------------------------------|------|------------------------------------------|--------------------------------|----------|
-| Explanation   | Sex         | Age Group                                                                   | Date | Event (Severity of illness)              | Vaccination status             | Event Count    |
-| Factor Levels | Homme, Dona, Not classified | 0-9, 10-19, 20-29,  30-39, 40-49, 50-59,  60-69, 70-79, 80$\geq$, Not classified |      | Cas, Hospitalització, Critics, Defunció  | No iniciada, Parcial, Completa |          |
+| Variable | SEXE | EDAT | DATA | ESDEVENIMENT | PAUTA | RECOMPTE |
+|---|---|---|---|:---|---|---|
+| Explanation | Sex | Age Group | Date | Event (Severity of illness) | Vaccination status | Count |
+| Factor Levels | Homme, Dona | 0-9, 10-19, 20-29, <br>30-39, 40-49, 50-59, <br>60-69, 70-79, 80-,<br>Not classified |  | Cas, Hospitalització, Critics, Defunció  | No iniciada, Parcial, Completa |  |
 
 # Objective
 
@@ -54,7 +57,8 @@ clean <- function(data){
   data$EDAT <- as.factor(data$EDAT)
   covid.data <- data %>% filter(DATA >= "2021-05-01" & DATA < "2021-12-13") %>% 
         filter(EDAT %in% c("30 a 39", "40 a 49", "50 a 59", "60 a 69", "70 a 79", "80 o més"))
-        # People with EDAT "No classificat" are not added (these are the same people as "No classificat" in SEXE).
+        # People with EDAT "No classificat" are not added 
+        # (these are the same people as "No classificat" in SEXE).
   
   covid.data$PAUTA <- factor(covid.data$PAUTA)
   covid.data$SEXE <- factor(covid.data$SEXE)
@@ -148,9 +152,11 @@ group.by.vacc.age <- function(data){
   data %>% group_by(EDAT, PAUTA) %>% summarise(Count = sum(RECOMPTE), .groups = "keep") 
 }
 d4 <- group.by.vacc.age(covid.data.women)
-knitr::kable(d4, caption = "Women with Critical Infection as Function of Vaccination Status and Age")
+knitr::kable(d4, caption = "Women with Critical Infection as 
+             Function of Vaccination Status and Age")
 d3 <- group.by.vacc.age(covid.data.men)
-knitr::kable(d3, caption = "Men with Critical Infection as Function of Vaccination Status and Age")
+knitr::kable(d3, caption = "Men with Critical Infection as 
+             Function of Vaccination Status and Age")
 ```
 
 ### Vaccination Status per Age Group
