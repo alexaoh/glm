@@ -834,9 +834,7 @@ phi</code></pre>
 ## Month        7  1125.42       205     1400.5
 ## PAUTA:Month 14   446.04       191      954.5
 ## EDAT:PAUTA  10   555.94       181      398.6</code></pre>
-<pre class="r"><code>qchisq(0.95, model7$df.res, lower.tail=TRUE)</code></pre>
-<pre><code>## [1] 213.3906</code></pre>
-<p>Now the model shows clear improvement, and the dispersion parameter is reduced to right above two.</p>
+<p>Now the model shows clear improvement, and the dispersion parameter is reduced to right above two. Including an interaction between all three covariates provides us with an even better model below. The graphical plots are much better, and the dispersion parameter 1.36, which is still slightly overdispersed, but better. The Pearson residual for the model is 130.4, which is slightly below the critical value for the <span class="math inline">\(\chi_{n - p}^2\)</span> distribution. Thus, we can conclude that this model is a good fit of the data.</p>
 <pre class="r"><code>model8 &lt;- glm(RECOMPTE ~ SEXE + EDAT*PAUTA*Month,
               data = covid.data.aggr, 
               family = poisson(link = &quot;log&quot;))
@@ -1183,8 +1181,8 @@ phi</code></pre>
 ## EDAT:Month       35   216.63       160      617.2
 ## PAUTA:Month      14   383.01       146      234.2
 ## EDAT:PAUTA:Month 50   100.66        96      133.5</code></pre>
-<pre class="r"><code>qchisq(0.95, model8$df.res, lower.tail=TRUE)</code></pre>
-<pre><code>## [1] 119.8709</code></pre>
+<pre class="r"><code>qchisq(0.99, model8$df.res, lower.tail=TRUE)</code></pre>
+<pre><code>## [1] 131.1412</code></pre>
 </div>
 </div>
 <div id="conclusions" class="section level1">

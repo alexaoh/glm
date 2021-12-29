@@ -254,11 +254,17 @@ PS
 phi <- PS / model7$df.res
 phi
 anova(model7)
-qchisq(0.95, model7$df.res, lower.tail=TRUE)
 ```
 
 Now the model shows clear improvement, and the dispersion parameter is reduced
 to right above two.
+Including an interaction between all three covariates provides us with an 
+even better model below.
+The graphical plots are much better, and the dispersion parameter 1.36, which 
+is still slightly overdispersed, but better.
+The Pearson residual for the model is 130.4, which is slightly below 
+the critical value for the $\chi_{n - p}^2$ distribution. 
+Thus, we can conclude that this model is a good fit of the data.
 
 
 ```{r}
@@ -274,7 +280,7 @@ PS
 phi <- PS / model8$df.res
 phi
 anova(model8)
-qchisq(0.95, model8$df.res, lower.tail=TRUE)
+qchisq(0.99, model8$df.res, lower.tail=TRUE)
 ```
 
 
