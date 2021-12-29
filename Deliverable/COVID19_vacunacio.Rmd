@@ -25,6 +25,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = F, fig.width = 10)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(car)
 ```
 
 We are analyzing a data set that contains information about the impact of COVID-19 by vaccination status in 2021 in Catalunya. The data comes from various information systems of the Department of Health and the Catalan Health Service, as detailed [here](https://dadescovid.cat/documentacio). More specifically, the data shows the impact of COVID-19 (new cases, hospitalizations, critical hospitalizations and deaths) in the entirety of Catalunya, from January 1st 2021 until now, for the date of reference of each record, by gender, by age group, according to the vaccination status of the people. Keep in mind that a person is counted as many times as the number of events that has happened to the individual in question. This means that each person may be counted up to four times in the data set as a whole. More information about the data set can be found [here](https://analisi.transparenciacatalunya.cat/en/Salut/Impacte-del-COVID-19-per-estat-de-vacunaci-/6izj-g3sb). Note that the data we are using was downloaded December 17th at 12:00. 
@@ -259,7 +260,7 @@ PS <- sum(residuals(model7, type="pearson")^2)
 PS
 phi <- PS / model7$df.res
 phi
-anova(model7)
+Anova(model7)
 ```
 
 Now the model shows clear improvement, and the dispersion parameter is reduced
@@ -285,7 +286,7 @@ PS <- sum(residuals(model8, type="pearson")^2)
 PS
 phi <- PS / model8$df.res
 phi
-anova(model8)
+Anova(model8, type = "2")
 qchisq(0.99, model8$df.res, lower.tail=TRUE)
 ```
 
