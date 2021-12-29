@@ -277,7 +277,7 @@ PS <- sum(residuals(model4, type="pearson")^2)
 PS
 phi <- PS / model4$df.res
 phi
-anova(model4)
+Anova(model4)
 ```
 
 Now the model shows clear improvement, and the dispersion parameter is reduced
@@ -306,77 +306,11 @@ PS <- sum(residuals(model5, type="pearson")^2)
 PS
 phi <- PS / model5$df.res
 phi
-anova(model5)
+Anova(model5)
 qchisq(0.99, model5$df.res, lower.tail=TRUE)
 ```
 
-<<<<<<< HEAD
-Next we include an interaction between the vaccination status and month.
-This has sense because the vaccination status should increase as a time goes,
-and more people is vaccinated.
-
-```{r}
-model6 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month, data = covid.data.aggr, 
-              family = poisson(link = "log"))
-summary(model6)
-par(mfrow = c(2,2))
-plot(model6, ask = F)
-# Checking for overdispersion
-PS <- sum(residuals(model6, type="pearson")^2)
-phi <- PS / model6$df.res
-phi
-```
-
-The model improves, but the residuals still shows clear patterns, and the model
-is overdispersed.
-Now we include an interaction between vaccination status and age group.
-This has sense since the older age group likely was vaccinated earlier than
-the younger age group.
-
-```{r}
-model7 <- glm(RECOMPTE ~ EDAT + SEXE + PAUTA + Month + PAUTA:Month + EDAT:PAUTA, data = covid.data.aggr, 
-              family = poisson(link = "log"))
-summary(model7)
-par(mfrow = c(2,2))
-plot(model7, ask = F)
-# Checking for overdispersion
-PS <- sum(residuals(model7, type="pearson")^2)
-PS
-phi <- PS / model7$df.res
-phi
-Anova(model7)
-```
-
-Now the model shows clear improvement, and the dispersion parameter is reduced
-to right above two.
-Including an interaction between all three covariates provides us with an 
-even better model below.
-The graphical plots are much better, and the dispersion parameter 1.36, which 
-is still slightly overdispersed, but better.
-The Pearson residual for the model is 130.4, which is slightly below 
-the critical value for the $\chi_{n - p}^2$ distribution. 
-Thus, we can conclude that this model is a good fit of the data.
-
-
-```{r}
-model8 <- glm(RECOMPTE ~ SEXE + EDAT*PAUTA*Month,
-              data = covid.data.aggr, 
-              family = poisson(link = "log"))
-summary(model8)
-par(mfrow = c(2,2))
-plot(model8, ask = F)
-# Checking for overdispersion
-PS <- sum(residuals(model8, type="pearson")^2)
-PS
-phi <- PS / model8$df.res
-phi
-Anova(model8, type = "2")
-qchisq(0.99, model8$df.res, lower.tail=TRUE)
-```
-
-=======
 Also, note that the AIC decreases for each of the increasingly complicated generalized linear models that are fitted to the data. This shows that the increasingly more complicated models perform better compared to the earlier models. Moreover, the Pearson residuals decrease as well, which points to the same conclusion. 
->>>>>>> c09a86831496b85f2c50288e5d4d44419e522868
 
 # Conclusions
 
@@ -386,4 +320,12 @@ are counted each month, and are modelled as a general linear model with
 Poisson response. The covariates gender, vaccination status, age group and month
 are included with interactions, and the model proved to fit the data well.
 
+Returning to the main question: does the amount of people with a *critical* infection depend on their respective vaccination statuses? Based on the final, very complicated model, the answer is yes. The Anova table shows that all covariates containing `PAUTA` are significant to any reasonable significance level. Moreover, looking at the $p$-values from the summary of the final model, we can conclude the following: To a significance level of $\alpha = 0.05$
 
+
+* `PAUTA: No iniciada` is significantly different from the baseline (`PAUTA: Completa`) ($p = 8.26\cdot10^{-5}$. The estimated parameter value is $\approx 2.82$, which means that the amount of critical infections per month is increased when individuals have not received any vaccines, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical (the other covariates are kept fixed).
+* `Pauta: Parcial` is significantly different from the baseline (`PAUTA: Completa`) ($p \approx 0.27$. The estimated parameter value is $\approx 3.93$, which means that the amount of critical infections per month is increased when individuals are partially vaccinated, compared to when individuals are completely vaccinated, when the rest of the individual's profile is identical. 
+* The interactions between `EDAT: 80 o més` and `PAUTA: Parcial`, and `EDAT: 80 o més` and `PAUTA: No iniciada`, are statistically significant to $\alpha$. Both parameter estimates are negative, which means that the model predicts the amount of critical infections in this age group to be larger when the individuals are fully vaccinated. This is a strange result, which goes against what one might think. When reflecting on this result, keep in mind the fact that most of the people in this age group are fully vaccinated, as shown in the exploratory data analysis. This might give rise to this slightly strange result. 
+* The interaction effect between `PAUTA: Parcial` and `Month` is statistically significant from month 8 onwards. All the parameter estimates in question are negative, which means that the model predicts a smaller amount of critical infections in the later months, when the individuals are partially vaccinated, compared to when the individuals are completely vaccinated. This is the case when the rest of the patient profile is kept fixed. This is also a strange result, which might depend on different facts in the data. 
+
+Without being sure about the reasons for all the predictions listed above, where some of them are strange, we can conclude that the amount of people with a critical infection depends on the vaccination status. 
